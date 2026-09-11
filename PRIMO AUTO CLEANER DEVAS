@@ -1,0 +1,120 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local player = Players.LocalPlayer
+
+local isRunning = false
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomUtilityGui"
+screenGui.ResetOnSpawn = false
+local successGui = pcall(function()
+	screenGui.Parent = CoreGui
+end)
+if not successGui then
+	screenGui.Parent = player:WaitForChild("PlayerGui")
+end
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 240, 0, 130)
+mainFrame.Position = UDim2.new(0, 40, 0, 40)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 35)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "FAST CLEANING"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 14
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.Parent = mainFrame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 25)
+statusLabel.Position = UDim2.new(0, 0, 0, 35)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "• Running: OFF"
+statusLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+statusLabel.TextSize = 13
+statusLabel.Font = Enum.Font.SourceSans
+statusLabel.Parent = mainFrame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 210, 0, 35)
+toggleBtn.Position = UDim2.new(0.5, -105, 0, 75)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+toggleBtn.Text = "ENABLE INSTANT/LOOP"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 12
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleBtn
+
+toggleBtn.MouseButton1Click:Connect(function()
+	isRunning = not isRunning
+	if isRunning then
+		statusLabel.Text = "• Running: ON"
+		statusLabel.TextColor3 = Color3.fromRGB(75, 255, 75)
+		toggleBtn.Text = "DISABLE INSTANT/LOOP"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+	else
+		statusLabel.Text = "• Running: OFF"
+		statusLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+		toggleBtn.Text = "ENABLE INSTANT/LOOP"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	end
+end)
+
+local function getCleanFolder()
+	local comService = Workspace:FindFirstChild("ComService") or ReplicatedStorage:FindFirstChild("ComService")
+	if not comService then
+		for _, desc in ipairs(Workspace:GetDescendants()) do
+			if desc.Name == "ComService" then
+				comService = desc
+				break
+			end
+		end
+	end
+	
+	if comService then
+		return comService:FindFirstChild("CleanFolder")
+	end
+	return nil
+end
+
+-- Mabilis at direktang pag-trigger ng bawat dumi sa buong folder nang sabay-sabay o sunud-sunod nang mabilis
+task.spawn(function()
+	while true do
+		if isRunning then
+			local cleanFolder = getCleanFolder()
+			if cleanFolder then
+				for _, child in ipairs(cleanFolder:GetChildren()) do
+					if not isRunning then break end
+					local prompt = child:FindFirstChildOfClass("ProximityPrompt")
+					local part = child:IsA("BasePart") and child or child:FindFirstChildWhichIsA("BasePart")
+					
+					if prompt and part then
+						local character = player.Character
+						if character and character:FindFirstChild("HumanoidRootPart") then
+							character.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 2, 0)
+						end
+						
+						prompt.HoldDuration = 0
+						fireproximityprompt(prompt)
+					end
+				end
+			end
+		end
+		task.wait(0.02)
+	end
+end)
